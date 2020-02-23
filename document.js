@@ -3,6 +3,8 @@ const fs = require("fs")
 const { matchSerializer } = require('./serializers')
 const { match } = require('./object-signatures')
 
+const createId = require('js-sha1');
+
 // TODO: function handler for resolving
 
 
@@ -33,8 +35,8 @@ class Document {
         var buffer = new Buffer(length)
         fs.read(fd, buffer, 0, length, start, (error, bytesRead, buffer) => {
           if (error) return reject(error)
-          const [ data, timestamp ] = JSON.parse(buffer.toString())
-          resolve({ data, timestamp })
+          const [ data, meta ] = JSON.parse(buffer.toString())
+          resolve({ data, meta })
         })
       })
     })
@@ -44,16 +46,23 @@ class Document {
       records: [],
       index: []
     }
-    const timestamp = Number(new Date)
+    const metadata = {
+      author: 'Dane Brdarski',
+      timestamp: Number(new Date)
+    }
+    const metadataRecord = JSON.stringify(metadata)
+    const metaId = createId(metadataRecord)
+    output.records.push(metadataRecord)
+    output.index.push(`${metaId}:${metadataRecord.length}\n`)
 
     records.forEach(data => {
       const handler = matchSerializer(data)
       if (handler) {
         const offset = handler(output, this.index, {
-          id: ++this.cursor.id,
+          // id: ++this.cursor.id,
           position: this.cursor.position,
           data,
-          timestamp
+          meta: metaId
         })
         if (offset) {
           this.cursor.position += offset
