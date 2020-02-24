@@ -10,15 +10,15 @@ const addIndexParser = (regex, handler) => {
 const matchIndexParser = (str, helpers) => {
   for (let i = 0; i < indexParsers.length; i++) {
     const match = str.match(indexParsers[i].regex)
-    if (match) indexParsers[i].handler(match, helpers)
+    if (match) return indexParsers[i].handler(match, helpers)
   }
 }
 
 addIndexParser({
-  regex: /^([\d]+)\:([\d]+)$/,
-  handler: ([ match, id, length ], { cursor, index }) => {
+  regex: /^([\d]+)\:([\d]+)#([0-9a-f]+)$/,
+  handler: ([ match, id, length, hash ], { cursor, index }) => {
     Object.defineProperty(index, id, {
-      value: { record: [ cursor.position, length ] },
+      value: { record: [ cursor.position, length ], hash },
       enumerable: true
     })
     cursor.position += length
@@ -90,7 +90,6 @@ const create = (name, path = './') => {
   fs.closeSync(fs.openSync(recordsFile, 'w'))
   fs.closeSync(fs.openSync(indexFile, 'w'))
 }
-
 
 module.exports = {
   Document,

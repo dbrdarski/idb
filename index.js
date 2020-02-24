@@ -1,7 +1,7 @@
-const { create, Document, open } = require('./db')
+const { create, Document, open } = require('./src/db')
 
 // const name = 'sample';
-const name = 'new';
+const name = 'good';
 
 create(name)
 open(name)

@@ -50,16 +50,17 @@ class Document {
       author: 'Dane Brdarski',
       timestamp: Number(new Date)
     }
-    const metadataRecord = JSON.stringify(metadata)
-    const metaId = createId(metadataRecord)
+    const metadataRecord = JSON.stringify([metadata])
+    const metaId = ++this.cursor.id
+    const metaHash = createId(metadataRecord)
     output.records.push(metadataRecord)
-    output.index.push(`${metaId}:${metadataRecord.length}\n`)
+    output.index.push(`${metaId}:${metadataRecord.length}#${metaHash}\n`)
 
     records.forEach(data => {
       const handler = matchSerializer(data)
       if (handler) {
         const offset = handler(output, this.index, {
-          // id: ++this.cursor.id,
+          id: ++this.cursor.id,
           position: this.cursor.position,
           data,
           meta: metaId
