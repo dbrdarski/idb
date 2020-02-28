@@ -1,18 +1,20 @@
 const { create, Document, open } = require('./src/db')
 
 // const name = 'sample';
-const name = 'good';
+const name = 'files/good';
 
 create(name)
 open(name)
   // .then(( doc ) => doc.find(4))
   .then(doc => {
-    var r = doc.matchRecord([1, 2, 3, 4, 5, {
+    var r = doc.matchRecord([1, 'two', 'two', {
       tag: 'p',
       attrs: {
-        class: 'text-right'
+        class: 'text-right',
+        items: 3,
+        visible: true
       },
-      children: ['Hello darkness my old friend.']
+      children: ['Hello darkness my old friend. I\'ve come to talk with you again']
     }])
     console.log(r)
   })

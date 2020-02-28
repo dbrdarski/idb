@@ -1,52 +1,114 @@
 const fs = require("fs")
 const readline = require('readline')
-const { getFilenames } = require('./utils')
+const { getFilenames, define, createHash, getId } = require('./utils')
 const Document = require('./document')
+const { addSerializer } = require('./serializers')
+const { addIndexParser } = require('./parsers')
+
 // const path = "./sample.idb"
-const indexParsers = []
-const addIndexParser = (regex, handler) => {
-  indexParsers.push({ regex, handler })
-}
-const matchIndexParser = (str, helpers) => {
-  for (let i = 0; i < indexParsers.length; i++) {
-    const match = str.match(indexParsers[i].regex)
-    if (match) return indexParsers[i].handler(match, helpers)
-  }
+
+const registerDataType = ({ shape, regex, handler, serializer }) => {
+  addSerializer(shape, serializer)
+  addIndexParser(regex, handler)
 }
 
-addIndexParser({
+registerDataType({
+  shape: ['value'], // where the fuck this comes into play?
   regex: /^([\d]+)\:([\d]+)#([0-9a-f]+)$/,
-  handler: ([ match, id, length, hash ], { cursor, index }) => {
-    Object.defineProperty(index, id, {
-      value: { record: [ cursor.position, length ], hash },
-      enumerable: true
-    })
+  serializer (output, index, { id, position, data }) {
+    data.id = id
+    const record = JSON.stringify([ data.value ])
+    const short = record.length < 40
+
+    if (short) {
+      output.index.push(`${id}|${output.meta}~${record}\n`)
+      return
+    }
+
+    const hash = createHash(record)
+    output.records.push(record)
+    output.index.push(`${id}|${output.meta}:${record.length}#${hash}\n`)
+    define(index, id, [ position, record.length ])
+    // index[id] = {
+    //   value: [ position, record.length ],
+    //   enumerable: true
+    // }
+    return record.length
+  },
+  handler ([ match, id, meta, length, hash ], { cursor, index, hashes }) {
+    define(index, id, { record: [ cursor.position, length, hash ], meta })
+    define(hashes, hash, id)
     cursor.position += length
     cursor.id = Number(id)
   }
 })
-
-addIndexParser({
+// addIndexParser({
+//   regex: /^([\d]+)\:([\d]+)#([0-9a-f]+)$/,
+//   handler:
+// })
+registerDataType({
+  shape: ['meta'], // where the fuck this comes into play?
+  regex: /^([\d]+)(\[[\d]+)$/,
+  serializer (output, index, { id, data }) {
+    console.log({ id, data })
+    data.id = id
+    const metadata = JSON.stringify([ data ])
+    const hash = createHash(metadata)
+    define(output, 'meta', id)
+    define(index, id, data)
+    output.records.push(metadata)
+    output.index.push(`${id}:${metadata.length}#${hash}\n`)
+  },
+  handler ([ match, id, length, hash ], { cursor, index, hashes }) {
+    define(index, id, { record: [ cursor.position, length ], hash })
+    define(hashes, hash, id)
+    cursor.position += length
+    cursor.id = Number(id)
+  }
+})
+registerDataType({
+  shape: ['list'], // where the fuck this comes into play?
   regex: /^([\d]+)(\[[\d]+(?:,[\d]+)*\])$/,
-  handler: ([ match, id, data ]) => {
+  serializer (output, index, { id, data }) {
+    data.id = id
+    const list = data.list.map(getId)
+    // const hash = createHash(list)
+    output.index.push(`${id}|${output.meta}${JSON.stringify(list)}\n`)
+    define(index, id, list)
+    // index[id] = {
+    //   value: list,
+    //   enumerable: true
+    // }
+  },
+  handler ([ match, id, data, meta ]) {
     const list = JSON.parse(data)
-    Object.defineProperty(index, id, {
-      value: { list },
-      enumerable: true
-    })
+    define(index, id, { list, meta })
     cursor.id = Number(id)
   }
 })
 
-addIndexParser({
+registerDataType({
+  shape: ['node'], // where the fuck this comes into play?
   // regex: /^([\d]+)\{"tag":([\d]+),"attrs":([\d]+),"children":([\d]+\})$/),
   regex: /^([\d]+)(\{"tag":[\d]+,"attrs":[\d]+,"children":[\d]+\})$/,
-  handler: ([ match, id, data ]) => {
+  serializer (output, index, { id, data }) {
+    data.id = id
+    const tag = getId(data.node.tag)
+    const attrs = getId(data.node.attrs)
+    const children = getId(data.node.children)
+    const node = { tag, attrs, children }
+    // const hash = JSON.stringify(node)
+    output.index.push(`${id}|${output.meta}${JSON.stringify(node)}\n`)
+    // const list = data.map(({ id }) => id )
+    // output.index.push(`${id}${JSON.stringify(list)}\n`)
+    // index[id] = {
+    //   value: list,
+    //   enumerable: true
+    // }
+  },
+  handler ([ match, id, data ]) {
     const node = JSON.parse(data)
-    Object.defineProperty(index, id, {
-      node: { node },
-      enumerable: true
-    })
+    define(index, id, { node })
     cursor.id = Number(id)
   }
 })
@@ -64,10 +126,12 @@ const open = (name, path = './') => {
     reader.on('line', (line) => {
       const [ id, lengthStr ] = line.split(':')
       const length = Number(lengthStr)
-      Object.defineProperty(index, id, {
-        value: [ position, length ],
-        enumerable: true
-      })
+      define(index, id, [ position, length ])
+      // Object.defineProperty(index, id, {
+      //   value: [ position, length ],
+      //   enumerable: true
+      // })
+
       // index[id] = [ position, length ]
       position += length
       idCounter = Number(id)
