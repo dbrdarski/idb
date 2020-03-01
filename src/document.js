@@ -1,4 +1,7 @@
-const fs = require("fs")
+const fs = require('fs')
+const readline = require('readline')
+const { getFilenames, define } = require('./utils')
+
 
 const { createSerializer } = require('./serializers')
 const { matchIndexParser } = require('./parsers')
@@ -8,27 +11,52 @@ const createHash = require('js-sha1');
 
 // TODO: function handler for resolving
 
-
 class Document {
-  constructor ({ recordsFile, indexFile, position = 0, id = 0, index = {} }) {
+  constructor ({ recordsFile, indexFile, position = 0, id = 0, index = {}, hashes = {}, values = {}}) {
     this.recordsFile = recordsFile
     this.indexFile = indexFile
     this.cursor = { id, position }
-    // this.cursor.position = position
-    // this.cursor.id = idCounter
+    this.hashes = hashes
+    this.values = values
     this.index = index
   }
+
+  static create (name, path = './') {
+    const { recordsFile, indexFile } = getFilenames(name, path)
+    const doc = new Document ({ recordsFile, indexFile })
+    fs.closeSync(fs.openSync(recordsFile, 'w'))
+    fs.closeSync(fs.openSync(indexFile, 'w'))
+    return Promise.resolve(doc)
+  }
+
+  static open (name, path = './') {
+    const { recordsFile, indexFile } = getFilenames(name, path)
+    const doc = new Document ({ recordsFile, indexFile })
+    return new Promise ((resolve, reject) => {
+      const reader = readline.createInterface({
+        input: fs.createReadStream(indexFile)
+      })
+      reader.on('line', (line) => {
+        matchIndexParser(line, doc)
+      }).on('close', () => {
+        resolve(doc)
+      })
+    })
+  }
+
   find (id) {
     const indexData = this.index[id]
     if (indexData == null) return null
     const [ start, length ] = indexData
     return this.readLine(start, length)
   }
+
   matchRecord (record) {
     const output = []
     match(output)(record)
     return this.save(output)
   }
+
   readLine (start, length) {
     return new Promise ((resolve, reject) => {
       fs.open(this.recordsFile, 'r', (error, fd) => {
@@ -42,6 +70,7 @@ class Document {
       })
     })
   }
+
   save (records) {
     const output = {
       records: [],
@@ -53,12 +82,6 @@ class Document {
     }
 
     const runSerializer = createSerializer(this, output)
-    // const metadataRecord = JSON.stringify([metadata])
-    // const metaId = ++this.cursor.id
-    // const metaHash = createHash(metadataRecord)
-    // output.records.push(metadataRecord)
-    // output.index.push(`${metaId}:${metadataRecord.length}#${metaHash}\n`)
-    //
     runSerializer({ meta })
     records.forEach(runSerializer)
 

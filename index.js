@@ -3,8 +3,8 @@ const { create, Document, open } = require('./src/db')
 // const name = 'sample';
 const name = 'files/good1';
 
-// create(name)
-open(name)
+// Document.create(name)
+Document.open(name)
   // .then(( doc ) => doc.find(4))
   .then(doc => {
     var r = doc.matchRecord([1, 'two', 'two', {
