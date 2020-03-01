@@ -1,6 +1,7 @@
 const fs = require("fs")
 
 const { createSerializer } = require('./serializers')
+const { matchIndexParser } = require('./parsers')
 const { match } = require('./object-signatures')
 
 const createHash = require('js-sha1');
@@ -68,26 +69,26 @@ class Document {
     //
     // })
   }
-  addRecord (data) {
-    return new Promise ((resolve, reject) => {
-      const timestamp = Number(new Date)
-      const record = JSON.stringify([ data, timestamp ])
-      fs.appendFile(this.recordsFile, record, (err) => {
-        if (err) return reject(err)
-        const id = ++this.cursor.id
-        const indexData = `${id}:${record.length}\n`
-        fs.appendFile(this.indexFile, indexData, (err) => {
-          if (err) return reject(err)
-          Object.defineProperty(this.index, id, {
-            value: [ this.cursor.position, record.length ],
-            enumerable: true
-          })
-          this.cursor.position += record.length
-          resolve(this)
-        })
-      })
-    })
-  }
+  // addRecord (data) {
+  //   return new Promise ((resolve, reject) => {
+  //     const timestamp = Number(new Date)
+  //     const record = JSON.stringify([ data, timestamp ])
+  //     fs.appendFile(this.recordsFile, record, (err) => {
+  //       if (err) return reject(err)
+  //       const id = ++this.cursor.id
+  //       const indexData = `${id}:${record.length}\n`
+  //       fs.appendFile(this.indexFile, indexData, (err) => {
+  //         if (err) return reject(err)
+  //         Object.defineProperty(this.index, id, {
+  //           value: [ this.cursor.position, record.length ],
+  //           enumerable: true
+  //         })
+  //         this.cursor.position += record.length
+  //         resolve(this)
+  //       })
+  //     })
+  //   })
+  // }
 }
 
 module.exports = Document

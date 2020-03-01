@@ -10,15 +10,15 @@ function serialize (output, data) {
   const handler = matchSerializer(data)
   if (handler) {
     const { meta } = output
-    console.log({ meta })
+    const { cursor } = this
+    ++cursor.id
     const offset = handler(output, this.index, {
-      id: ++this.cursor.id,
-      position: this.cursor.position,
+      cursor,
       data,
       meta
     })
     if (offset) {
-      this.cursor.position += offset
+      cursor.position += offset
     }
   }
 }
