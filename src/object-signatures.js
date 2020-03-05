@@ -1,8 +1,8 @@
-const { getObjectShape, isPrimitive } = require('./utils')
+const { getObjectShape, isPrimitive, define } = require('./utils')
 
 const objectSignatures = {}
 const addObjectSignature = (def, handler) => {
-  objectSignatures[JSON.stringify(def)] = handler
+  define(objectSignatures, JSON.stringify(def), handler)
 }
 
 addObjectSignature(['ref'], x => x)

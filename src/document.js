@@ -1,57 +1,55 @@
 const fs = require('fs')
-const readline = require('readline')
-const { getFilenames, define } = require('./utils')
-
 
 const { createSerializer } = require('./serializers')
-const { matchIndexParser } = require('./parsers')
 const { match } = require('./object-signatures')
+const { define } = require('./utils')
 
-const createHash = require('js-sha1');
+const createHash = require('js-sha1')
 
 // TODO: function handler for resolving
 
 class Document {
   constructor ({ recordsFile, indexFile, position = 0, id = 0, index = {}, hashes = {}, values = {}}) {
-    this.recordsFile = recordsFile
-    this.indexFile = indexFile
+    define(this, 'recordsFile', recordsFile)
+    define(this, 'indexFile', indexFile)
     this.cursor = { id, position }
     this.hashes = hashes
     this.values = values
     this.index = index
   }
 
-  static create (name, path = './') {
-    const { recordsFile, indexFile } = getFilenames(name, path)
-    const doc = new Document ({ recordsFile, indexFile })
-    fs.closeSync(fs.openSync(recordsFile, 'w'))
-    fs.closeSync(fs.openSync(indexFile, 'w'))
-    return Promise.resolve(doc)
-  }
-
-  static open (name, path = './') {
-    const { recordsFile, indexFile } = getFilenames(name, path)
-    const doc = new Document ({ recordsFile, indexFile })
-    return new Promise ((resolve, reject) => {
-      const reader = readline.createInterface({
-        input: fs.createReadStream(indexFile)
-      })
-      reader.on('line', (line) => {
-        matchIndexParser(line, doc)
-      }).on('close', () => {
-        resolve(doc)
-      })
-    })
-  }
+  // static create (name, path = './') {
+  //   const { recordsFile, indexFile } = getFilenames(name, path)
+  //   const doc = new Document ({ recordsFile, indexFile })
+  //   fs.closeSync(fs.openSync(recordsFile, 'w'))
+  //   fs.closeSync(fs.openSync(indexFile, 'w'))
+  //   return Promise.resolve(doc)
+  // }
+  //
+  // static open (name, path = './') {
+  //   const { recordsFile, indexFile } = getFilenames(name, path)
+  //   const doc = new Document ({ recordsFile, indexFile })
+  //   return new Promise ((resolve, reject) => {
+  //     const reader = readline.createInterface({
+  //       input: fs.createReadStream(indexFile)
+  //     })
+  //     reader.on('line', (line) => {
+  //       matchIndexParser(line, doc)
+  //     }).on('close', () => {
+  //       resolve(doc)
+  //     })
+  //   })
+  // }
 
   find (id) {
-    const indexData = this.index[id]
-    if (indexData == null) return null
-    const [ start, length ] = indexData
-    return this.readLine(start, length)
+    return id == null ? this.index : this.index[id]
+    // const indexData = this.index[id]
+    // if (indexData == null) return null
+    // const [ start, length ] = indexData
+    // return this.readLine(start, length)
   }
 
-  matchRecord (record) {
+  write (record) {
     const output = []
     match(output)(record)
     return this.save(output)
@@ -73,6 +71,7 @@ class Document {
 
   save (records) {
     const output = {
+      id: null,
       records: [],
       index: []
     }
@@ -85,9 +84,11 @@ class Document {
     runSerializer({ meta })
     records.forEach(runSerializer)
 
-    console.log(output)
+    // console.log(output)
     fs.appendFile(this.recordsFile, output.records.join(''), new Function)
     fs.appendFile(this.indexFile, output.index.join(''), new Function)
+
+    return output.id
     // return new Promise ((resolve, reject) => {
     //
     // })

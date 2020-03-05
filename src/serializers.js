@@ -12,13 +12,14 @@ function serialize (output, data) {
     const { meta } = output
     const { cursor, values, hashes } = this
     ++cursor.id
-    data.id = handler(output, this.index, {
+    output.id = data.id = handler(output, this.index, {
       cursor,
       data,
       meta,
       values,
       hashes
     })
+    // return data.id
   }
 }
 

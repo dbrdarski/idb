@@ -42,17 +42,22 @@ registerDataTypes(({
     return cursor.id
   })
   addIndexParser(regexr.value, ([ match, id, meta, valueRecord ], { cursor, index, values }) => {
+    id = Number(id)
+    meta = Number(meta)
     console.log([ match, id, meta, valueRecord, values ])
     const value = JSON.parse(valueRecord)
     define(index, id, { value })
     define(values, valueRecord, value)
   })
   addIndexParser(regexr.record, ([ match, id, meta, length, hash ], { cursor, index, hashes }) => {
+    id = Number(id)
+    meta = Number(meta)
+    length = Number(length)
     console.log([ match, id, meta, length, hash ])
-    define(index, id, { record: [ cursor.position, length, hash ], meta })
+    define(index, id, { record: [ cursor.position, length ], hash, meta })
     define(hashes, hash, id)
     cursor.position += length
-    cursor.id = Math.max(Number(id), cursor.id)
+    cursor.id = Math.max(id, cursor.id)
     console.log("C", cursor.id)
   })
 
@@ -68,10 +73,12 @@ registerDataTypes(({
     return cursor.id
   })
   addIndexParser(regexr.meta, ([ match, id, length, hash ], { cursor, index, hashes }) => {
+    id = Number(id)
+    length = Number(length)
     define(index, id, { record: [ cursor.position, length ], hash })
     define(hashes, hash, id)
     cursor.position += length
-    cursor.id = Math.max(Number(id), cursor.id)
+    cursor.id = Math.max(id, cursor.id)
     console.log("C", cursor.id)
   })
 
@@ -83,10 +90,12 @@ registerDataTypes(({
     define(index, cursor.id, list)
     return cursor.id
   })
-  addIndexParser(regexr.list, ([ match, id, data, meta ], { cursor, index }) => {
+  addIndexParser(regexr.list, ([ match, id, meta, data ], { cursor, index }) => {
+    id = Number(id)
+    meta = Number(meta)
     const list = JSON.parse(data)
     define(index, id, { list, meta })
-    cursor.id = Math.max(Number(id), cursor.id)
+    cursor.id = Math.max(id, cursor.id)
     console.log("C", cursor.id)
   })
 
@@ -101,11 +110,13 @@ registerDataTypes(({
     output.index.push(`${cursor.id}|${output.meta}${value}\n`)
     return cursor.id
   })
-  addIndexParser(regexr.node, ([ match, id, data ], { cursor, index }) => {
+  addIndexParser(regexr.node, ([ match, id, meta, data ], { cursor, index }) => {
+    id = Number(id)
+    meta = Number(meta)
     const node = JSON.parse(data)
-    define(index, id, { node })
+    define(index, id, { node, meta })
     cursor.id = Math.max(Number(id), cursor.id)
-    console.log("C", cursor.id)
+    // console.log("C", cursor.id)
   })
 })
 

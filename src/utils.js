@@ -1,5 +1,5 @@
 const getFilenames = (name, path) => {
-  const filePath = `${path}${name}`
+  const filePath = `${path}/${name}`
   const recordsFile = `${filePath}.idb`
   const indexFile = `${filePath}.idx`
   return { recordsFile, indexFile }
