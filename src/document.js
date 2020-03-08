@@ -3,6 +3,7 @@ const fs = require('fs')
 const { createSerializer } = require('./serializers')
 const { match } = require('./object-signatures')
 const { define } = require('./utils')
+const { serializeResponse } = require('./response')
 
 const createHash = require('js-sha1')
 
@@ -42,11 +43,28 @@ class Document {
   // }
 
   find (id) {
-    return id == null ? this.index : this.index[id]
+    if (id == null ) return this.index
+
     // const indexData = this.index[id]
     // if (indexData == null) return null
     // const [ start, length ] = indexData
     // return this.readLine(start, length)
+
+    const output = {
+       meta: {},
+       data: {},
+       included: {},
+       records: {}
+    }
+
+    output.data = serializeResponse(id, this.index, output)
+    const { records, ...response } = output
+    const r = Object.entries(records).sort(([a],[b]) => {
+      a = Number(a)
+      b = Number(b)
+      return a === b ? 0 : a < b ? -1 : 1
+    })
+    return { ...response, records: r }
   }
 
   write (record) {

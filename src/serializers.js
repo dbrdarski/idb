@@ -1,9 +1,10 @@
-const { getObjectShape } = require('./utils')
+const { define, getObjectShape } = require('./utils')
 
 const serializers = []
 const matchSerializer = o => serializers[getObjectShape(o)]
 const addSerializer = (def, handler) => {
-  serializers[JSON.stringify(def)] = handler
+  // serializers[JSON.stringify(def)] = handler
+  define(serializers, JSON.stringify(def), handler)
 }
 
 function serialize (output, data) {

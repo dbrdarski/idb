@@ -15,12 +15,19 @@ const define = (target, key, value) => Object.defineProperty(target, key, {
   enumerable: true
 })
 
+const fill = (target, key, fn, ...args) => {
+  if(key != null && !target.hasOwnProperty(key)) {
+    target[key] = fn(...args)
+  }
+}
+
 const getId = ({ id }) => id
 const createHash = require('js-sha1');
 
 module.exports = {
   getId,
   define,
+  fill,
   createHash,
   getFilenames,
   getObjectShape,
